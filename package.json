@@ -45,6 +45,7 @@
     "webpack-stream": "^4.0.0"
   },
   "optionalDependencies": {
+    "invariant": "^2.2.2",
     "react": "^15.6.1",
     "react-dom": "^15.6.1"
   },

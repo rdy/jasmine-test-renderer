@@ -21,7 +21,7 @@ function install() {
       toBeA: [actual => actual.components || actual.component || actual, any],
       toHaveState: [actual => actual.state, objectContaining],
       toHaveProps: [actual => actual.props, objectContaining],
-      toHaveStyle: [actual => actual.props.style, expected => arrayContaining(flatten([expected]))],
+      toHaveStyle: [actual => flatten([actual.props.style]), expected => arrayContaining(flatten([expected]))],
       toHaveText: [actual => actual.innerText, identity],
       toContainText: [actual => actual.innerText, identity, contains],
     };

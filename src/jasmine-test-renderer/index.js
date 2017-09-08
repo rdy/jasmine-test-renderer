@@ -44,7 +44,7 @@ function injectRenderer(equals: Function) {
     function asComponents(components) {
       return {
         filter(callback: Function) {
-          return asComponents(components.filter(component => callback(asComponent(component))));
+          return asComponents(components.filter((component, ...args) => callback(asComponent(component), ...args)));
         },
 
         find(callback: Function) {
@@ -67,6 +67,10 @@ function injectRenderer(equals: Function) {
 
         at(index: number) {
           return asComponent(index >= 0 ? components[index] : components[components.length + index]);
+        },
+
+        slice(...args: mixed[]) {
+          return components.slice(...args).map(asComponent);
         },
 
         get components() {
@@ -122,10 +126,12 @@ function injectRenderer(equals: Function) {
         invariant(tree.constructor, 'setProps: cannot be called on a pure function component!');
         const Component = tree.constructor;
         tree = renderDOM(<Component {...tree.props} {...props} />, div);
+        return this;
       },
 
       setState(state: Object) {
         tree.setState(state);
+        return this;
       },
 
       unmount() {
