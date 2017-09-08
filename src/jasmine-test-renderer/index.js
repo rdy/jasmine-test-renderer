@@ -1,8 +1,23 @@
 // @flow
-import {Simulate, findRenderedComponentWithType, scryRenderedComponentsWithType} from 'react-dom/test-utils';
+import {findAllInRenderedTree, isDOMComponent, Simulate, findRenderedComponentWithType, scryRenderedComponentsWithType} from 'react-dom/test-utils';
 import {findDOMNode, render as renderDOM, unmountComponentAtNode} from 'react-dom';
+import {isFunction, isString} from './helpers';
 import React from 'react';
 import invariant from 'invariant';
+
+function querySelectorAll(root, selector) {
+  return findAllInRenderedTree(root, inst => {
+    return isDOMComponent(inst) && findDOMNode(inst).matches(selector);
+  });
+}
+
+function querySelector(root, selector) {
+  const all = findAllInRenderedTree(root, inst => {
+    return isDOMComponent(inst) && findDOMNode(inst).matches(selector);
+  });
+  if (!all.length) throw new Error(`Did not find exactly one match (found: ${all.length}) for selector: ${selector}`);
+  return all[0];
+}
 
 function injectRenderer(equals: Function) {
   return function(element: React$Element<*>, div?: HTMLElement = document.createElement('div')) {
@@ -100,10 +115,10 @@ function injectRenderer(equals: Function) {
     }
 
     return {
-      all(Component: ReactClass<*>, callbackOrProps?: Function | Object) {
-        const result = asComponents(scryRenderedComponentsWithType(tree, Component));
+      all(componentOrSelector: ReactClass<*> | string, callbackOrProps?: Function | Object) {
+        const result = asComponents((isString(componentOrSelector) ? querySelectorAll : scryRenderedComponentsWithType)(tree, componentOrSelector));
         if (!callbackOrProps) return result;
-        if (typeof callbackOrProps === 'function') return result.filter(callbackOrProps);
+        if (isFunction(callbackOrProps)) return result.filter(callbackOrProps);
         return result.filter(obj =>
           Object.entries(callbackOrProps).every(([prop, value]) => {
             return equals(obj.props[prop], value);
@@ -111,13 +126,13 @@ function injectRenderer(equals: Function) {
         );
       },
 
-      first(Component: ReactClass<*>, callbackOrProps?: Function | Object) {
-        if (!callbackOrProps) return asComponent(findRenderedComponentWithType(tree, Component));
-        const result = asComponents(scryRenderedComponentsWithType(tree, Component));
-        if (typeof callbackOrProps === 'function') return result.find(callbackOrProps);
+      first(componentOrSelector: ReactClass<*>, callbackOrProps?: Function | Object) {
+        if (!callbackOrProps) return asComponent((isString(componentOrSelector)  ? querySelector : findRenderedComponentWithType)(tree, componentOrSelector));
+        const result = asComponents((isString(componentOrSelector) ? querySelectorAll : scryRenderedComponentsWithType)(tree, componentOrSelector));
+        if (isFunction(callbackOrProps)) return result.find(callbackOrProps);
         return result.find(obj =>
           Object.entries(callbackOrProps).every(([prop, value]) => {
-            return equals(obj.props[prop], value);
+            return equals((obj.props || {})[prop], value);
           })
         );
       },
