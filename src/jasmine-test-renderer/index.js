@@ -1,6 +1,7 @@
 // @flow
 import {Simulate, findRenderedComponentWithType, scryRenderedComponentsWithType} from 'react-dom/test-utils';
 import {findDOMNode, render as renderDOM, unmountComponentAtNode} from 'react-dom';
+import {propsEquals, querySelector, querySelectorAll} from './helpers/renderer_helper';
 import React from 'react';
 import invariant from 'invariant';
 
@@ -30,7 +31,7 @@ function injectRenderer(equals: Function) {
           return this.findDOMNode().innerText;
         },
 
-        findDOMNode() {
+        findDOMNode(): Object {
           return findDOMNode(component) || {};
         },
 
@@ -100,26 +101,29 @@ function injectRenderer(equals: Function) {
     }
 
     return {
-      all(Component: ReactClass<*>, callbackOrProps?: Function | Object) {
-        const result = asComponents(scryRenderedComponentsWithType(tree, Component));
+      all(componentOrSelector: ReactClass<*> | string, callbackOrProps?: Function | Object) {
+        const elements =
+          typeof componentOrSelector === 'string'
+            ? querySelectorAll(tree, componentOrSelector)
+            : scryRenderedComponentsWithType(tree, componentOrSelector);
+        const result = asComponents(elements);
         if (!callbackOrProps) return result;
         if (typeof callbackOrProps === 'function') return result.filter(callbackOrProps);
-        return result.filter(obj =>
-          Object.entries(callbackOrProps).every(([prop, value]) => {
-            return equals(obj.props[prop], value);
-          })
-        );
+        return result.filter(propsEquals(callbackOrProps, equals));
       },
 
-      first(Component: ReactClass<*>, callbackOrProps?: Function | Object) {
-        if (!callbackOrProps) return asComponent(findRenderedComponentWithType(tree, Component));
-        const result = asComponents(scryRenderedComponentsWithType(tree, Component));
+      one(componentOrSelector: ReactClass<*> | string, callbackOrProps?: Function | Object) {
+        if (!callbackOrProps) {
+          if (typeof componentOrSelector === 'string') return asComponent(querySelector(tree, componentOrSelector));
+          return asComponent(findRenderedComponentWithType(tree, componentOrSelector));
+        }
+        const elements =
+          typeof componentOrSelector === 'string'
+            ? querySelectorAll(tree, componentOrSelector)
+            : scryRenderedComponentsWithType(tree, componentOrSelector);
+        const result = asComponents(elements);
         if (typeof callbackOrProps === 'function') return result.find(callbackOrProps);
-        return result.find(obj =>
-          Object.entries(callbackOrProps).every(([prop, value]) => {
-            return equals(obj.props[prop], value);
-          })
-        );
+        return result.find(propsEquals(callbackOrProps, equals));
       },
 
       setProps(props: Object = {}) {
@@ -161,10 +165,4 @@ function injectRenderer(equals: Function) {
   };
 }
 
-function render(element: React$Element<*>, div?: HTMLElement) {
-  invariant(jasmine, 'render: requires jasmine to be defined globally!');
-  return injectRenderer((jasmine: any).matchersUtil.equals)(element, div);
-}
-
-export {render};
 export default injectRenderer;

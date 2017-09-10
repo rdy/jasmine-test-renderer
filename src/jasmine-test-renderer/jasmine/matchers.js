@@ -1,5 +1,5 @@
 // @flow
-import {flatten, identity} from './helpers';
+import {flatten, identity} from '../helpers';
 
 function pass({contains, equals}, actualFn, expectedFn) {
   return function(actual, expected, overrideOperatorFn) {
